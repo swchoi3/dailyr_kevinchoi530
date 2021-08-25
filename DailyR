@@ -1,0 +1,61 @@
+---
+title: "Daily_R"
+author: "Kevin Choi"
+date: "8/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, results='hide', warning=FALSE, echo=FALSE,error=FALSE}
+library(RColorBrewer)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+library(psych)
+library(stats)
+library(tidyverse)
+library(rstatix)
+```
+## Daily R (DR)
+
+## DR for 8.24 (Day 1 of this project)
+
+```{r importdata, warning=FALSE, echo=FALSE, error=FALSE}
+chick<- chickwts
+head(chick)
+table(chick$feed)
+```
+The plan for the Daily R this week is to try and explore the different ways we can compute means, standard deviations, etc. to be more robust, and practice non-regression ways of testing hypotheses (this week I focus on ANOVA, for no other reason than that's its fun).
+
+Today, I will:
+1) check the as-is summary statistics for the built-in dataset "chickGrowth" which is stated in the R documentation as "Newly hatched chicks were randomly allocated into six groups, and each group was given a different feed supplement. Their weights in grams after six weeks are given along with feed types";
+2) use a basic ANOVA to see how to make fatter chickens
+
+```{r summarystats, warning=FALSE, echo=FALSE, error=FALSE}
+is.factor(chick$feed)  ##making sure the "feed" variable is categorical
+summary(chick)
+chick$feed2 <- chick$feed
+levels(chick$feed2) <- c("hb", "ls", "mm", "sb", "sf", "ci")
+table(chick$feed2)
+table(chick$feed)
+str(chick)
+boxplot1 <- ggplot(chick, aes(x=feed, y=weight)) + geom_boxplot()
+boxplot1
+
+plots_chicks1 <- ggplot(chick, aes(x=weight, fill=feed)) +
+    geom_density(alpha=0.5) +  scale_color_brewer(palette="rainbow")
+plots_chicks1
+```
+
+We see large variations between locations, with the boxplot telling us that casein and sunflower feed are the top two feeds, and horsebean and linseed are the least performing. Based on the density plots, we also see that the data approximates normal distribution but is still rather skewed. We want to explore this with a little more certainty, however, so I'll use ANOVA to compare the group means. Recall that in ANOVA, the null hypothesis is that there is no difference among group means. According to a guide on ANOVA (https://www.scribbr.com/statistics/one-way-anova/) "If any group differs significantly from the overall group mean, then the ANOVA will report a statistically significant result. Significant differences among group means are calculated using the F statistic, which is the ratio of the mean sum of squares (the variance explained by the independent variable) to the mean square error (the variance left over). If the F statistic is higher than the critical value (the value of F that corresponds with the alpha value, then the difference among groups is deemed statistically significant." Since we avoid the words "statistically significant", I'll rephrase that as rejecting the null hypothesis that there is no difference in means between the overall and the categorized means at $\alpha$=0.05.
+
+```{r testing, warning=FALSE, echo=FALSE, error=FALSE}
+one.way <- aov(weight ~ feed2, data = chick)
+aov_sum<- TukeyHSD(one.way) ##the tukey_hsd test runs pairwise comparisons among each of the groups, and uses a conservative error estimate to find the groups which are statistically different from one another.
+aov_sum
+plot(aov_sum,las=1)
+```
+We observe there are results where we can reject the null hypothesis and attribute some variation to the type of feed given to chicks and the relationship to weight gain. So, if you want those monster chicken thighs they sell down South, feed your chickens casein (some sort of lactose after-product, if I'm correct, that bodybuilders chug) and/or sunflower feed!
